@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="https://w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>DesmosScript</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        div#calculator {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="calculator"></div>
+    <script>
+        const elt = document.getElementById(`calculator`);
+        const calculator = Desmos.GraphingCalculator(elt);
+        Desmos.enabledFeatures = {
+            GraphingCalculator: true,
+            FourFunctionCalculator: true,
+            ScientificCalculator: true,
+            GeometryCalculator: true
+        }
+        const index = [
+            [`\\sin`, `\\sin`, [[`\\left(`, `\\right)`]]],
+            [`\\cos`, `\\cos`, [[`\\left(`, `\\right)`]]],
+            [`\\tan`, `\\tan`, [[`\\left(`, `\\right)`]]],
+            [`\\csc`, `\\csc`, [[`\\left(`, `\\right)`]]],
+            [`\\sec`, `\\sec`, [[`\\left(`, `\\right)`]]],
+            [`\\cot`, `\\cot`, [[`\\left(`, `\\right)`]]],
+            [`\\arcsin`, `\\arcsin`, [[`\\left(`, `\\right)`]]],
+            [`\\arccos`, `\\arccos`, [[`\\left(`, `\\right)`]]],
+            [`\\arctan`, `\\arctan`, [[`\\left(`, `\\right)`]]],
+            [`\\arccsc`, `\\arccsc`, [[`\\left(`, `\\right)`]]],
+            [`\\arcsec`, `\\arcsec`, [[`\\left(`, `\\right)`]]],
+            [`\\arccot`, `\\arccot`, [[`\\left(`, `\\right)`]]],
+            [`\\hsin`, `\\sinh`, [[`\\left(`, `\\right)`]]],
+            [`\\hcos`, `\\cosh`, [[`\\left(`, `\\right)`]]],
+            [`\\htan`, `\\tanh`, [[`\\left(`, `\\right)`]]],
+            [`\\hcsc`, `\\csch`, [[`\\left(`, `\\right)`]]],
+            [`\\hsec`, `\\sech`, [[`\\left(`, `\\right)`]]],
+            [`\\hcot`, `\\coth`, [[`\\left(`, `\\right)`]]],
+            [`\\total`, `\\operatorname{total}`, [[`\\left(`, `\\right)`]]],
+            [`\\min`, `\\min`, [[`\\left(`, `\\right)`]]],
+            [`\\max`, `\\max`, [[`\\left(`, `\\right)`]]],
+            [`\\count`, `\\operatorname{count}`, [[`\\left(`, `\\right)`]]],
+            [`\\mean`, `\\operatorname{mean}`, [[`\\left(`, `\\right)`]]],
+            [`\\median`, `\\operatorname{median}`, [[`\\left(`, `\\right)`]]],
+            [`\\quantile`, `\\operatorname{quantile}`, [[`\\left(`, `\\right)`]]],
+            [`\\stdev`, `\\operatorname{stdev}`, [[`\\left(`, `\\right)`]]],
+            [`\\pstdev`, `\\operatorname{stdevp}`, [[`\\left(`, `\\right)`]]],
+            [`\\mad`, `\\operatorname{mad}`, [[`\\left(`, `\\right)`]]],
+            [`\\var`, `\\operatorname{var}`, [[`\\left(`, `\\right)`]]],
+            [`\\cov`, `\\operatorname{cov}`, [[`\\left(`, `\\right)`]]],
+            [`\\corr`, `\\operatorname{corr}`, [[`\\left(`, `\\right)`]]],
+            [`\\nCr`, `\\operatorname{nCr}`, [[`\\left(`, `\\right)`]]],
+            [`\\nPr`, `\\operatorname{nPr}`, [[`\\left(`, `\\right)`]]],
+            [`\\join`, `\\operatorname{join}`, [[`\\left(`, `\\right)`]]],
+            [`\\sort`, `\\operatorname{sort}`, [[`\\left(`, `\\right)`]]],
+            [`\\unique`, `\\operatorname{unique}`, [[`\\left(`, `\\right)`]]],
+            [`\\shuffle`, `\\operatorname{shuffle}`, [[`\\left(`, `\\right)`]]],
+            [`\\lcm`, `\\operatorname{lcm}`, [[`\\left(`, `\\right)`]]],
+            [`\\gcd`, `\\operatorname{gcd}`, [[`\\left(`, `\\right)`]]],
+            [`\\mod`, `\\operatorname{mod}`, [[`\\left(`, `\\right)`]]],
+            [`\\floor`, `\\operatorname{floor}`, [[`\\left(`, `\\right)`]]],
+            [`\\ceil`, `\\operatorname{ceil}`, [[`\\left(`, `\\right)`]]],
+            [`\\round`, `\\operatorname{round}`, [[`\\left(`, `\\right)`]]],
+            [`\\abs`, `\\operatorname{abs}`, [[`\\left(`, `\\right)`]]],
+            [`\\sign`, `\\operatorname{sign}`, [[`\\left(`, `\\right)`]]],
+            [`\\exp`, `\\exp`, [[`\\left(`, `\\right)`]]],
+            [`\\ln`, `\\ln`, [[`\\left(`, `\\right)`]]],
+            [`\\log`, `\\log`, [[`\\left(`, `\\right)`]]],
+            [`\\width`, `\\operatorname{width}`, []],
+            [`\\height`, `\\operatorname{height}`, []],
+            [`\\length`, `\\operatorname{length}`, [[`\\left(`, `\\right)`]]],
+            [`\\for`, `\\operatorname{for}`, []],
+            [`\\polygon`, `\\operatorname{polygon}`, [[`\\left(`, `\\right)`]]],
+            [`\\rgb`, `\\operatorname{rgb}`, [[`\\left(`, `\\right)`]]],
+            [`\\{`, `\\left\\{`, []],
+            [`\\}`, `\\right\\}`, []],
+            [`<=`, `\\le `, []],
+            [`>=`, `\\ge `, []]
+        ]
+
+        const variables = [];
+        let id = 0;
+
+        function findClosingParen(text, openPos) {
+            let closePos = openPos;
+            let counter = 1;
+            while (counter > 0) {
+                let c = text[++closePos];
+                if (c === `(`) {
+                    counter++;
+                }
+                else if (c === `)`) {
+                    counter--;
+                }
+            }
+            return closePos;
+        }
+
+        function editEquation(latex) {
+            let point = 0;
+            let closingParenPoint = 0;
+            let openingParenPoint = 0;
+            for (let i = 0; i < index.length; i++) {
+                if (index[i][2].length > 0) {
+                    point = 0;
+                    while (latex.indexOf(index[i][0], point) !== -1) {
+                        openingParenPoint = latex.indexOf(`(`, latex.indexOf(index[i][0], point) + index[i][0].length);
+                        closingParenPoint = findClosingParen(latex, latex.indexOf(`(`, latex.indexOf(index[i][0], point) + index[i][0].length));
+                        for (let j = 0; j < index[i][2].length; j++) {
+                            latex = latex.slice(0, closingParenPoint) + index[i][2][j][1] + latex.slice(closingParenPoint + 1);
+                            latex = latex.slice(0, openingParenPoint) + index[i][2][j][0] + latex.slice(openingParenPoint + 1);
+                            if (j < index[i][2].length - 1) {
+                                openingParenPoint = latex.indexOf(`(`, closingParenPoint + 1);
+                                closingParenPoint = latex.indexOf(`(`, findClosingParen(latex, closingParenPoint + 1));
+                            }
+                        }
+                        point = latex.indexOf(index[i][0], point) + 1;
+                    }
+                }
+            }
+            for (let i = 0; i < index.length; i++) {
+                latex = latex.replaceAll(index[i][0], index[i][1]);
+            }
+            const variable = latex.slice(0, latex.indexOf(`=`));
+            if (variable.length > 1 && variable.indexOf(`\\`) == -1) {
+                if (variable.indexOf(`(`) == -1) {
+                    variables.push([latex.slice(0, latex.indexOf(`=`)), `${latex.slice(0, 1)}_{${latex.slice(1, latex.indexOf(`=`))}}`]);
+                }
+                else if (variable.indexOf(`(`) > 1) {
+                    variables.push([latex.slice(0, latex.indexOf(`(`)), `${latex.slice(0, 1)}_{${latex.slice(1, latex.indexOf(`(`))}}`]);
+                }
+            }
+            for (let i = 0; i < variables.length; i++) {
+                latex = latex.replaceAll(variables[i][0], variables[i][1]);
+            }
+            return latex;
+        }
+
+        function createCalculation(calculation) {
+            const calculationArray = calculation.trim().split(`;`).filter(x => x);
+            for (let i = 0; i < calculationArray.length; i++) {
+                calculationArray[i] = calculationArray[i].trimStart();
+                let calculation = calculationArray[i].split(`@`);
+                expression = {
+                    id: id++,
+                    latex: editEquation(calculation[0]),
+                    sliderBounds: {},
+                    parametricDomain: {},
+                    polarDomain: {}
+                };
+                for (let i = 1; i < calculation.length; i++) {
+                    if (calculation[i] != undefined) {
+                        switch (calculation[i].split(":")[0]) {
+                            case `color`:
+                                expression.color = calculation[i].split(`:`)[1];
+                                break;
+                            case `lineStyle`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`solid`) === 0) {
+                                    expression.lineStyle = Desmos.Styles.SOLID;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`dashed`) === 0) {
+                                    expression.lineStyle = Desmos.Styles.DASHED;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`dotted`) === 0) {
+                                    expression.lineStyle = Desmos.Styles.DOTTED;
+                                }
+                                break;
+                            case `lineWidth`:
+                                expression.lineWidth = calculation[i].split(`:`)[1];
+                                break;
+                            case `lineOpacity`:
+                                expression.lineOpacity = calculation[i].split(`:`)[1];
+                                break;
+                            case `pointStyle`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`point`) === 0) {
+                                    expression.pointStyle = Desmos.Styles.POINT;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`open`) === 0) {
+                                    expression.pointStyle = Desmos.Styles.OPEN;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`cross`) === 0) {
+                                    expression.pointStyle = Desmos.Styles.CROSS;
+                                }
+                                break;
+                            case `pointSize`:
+                                expression.pointSize = calculation[i].split(`:`)[1];
+                                break;
+                            case `pointOpacity`:
+                                expression.pointOpacity = calculation[i].split(`:`)[1];
+                                break;
+                            case `fillOpacity`:
+                                expression.fillOpacity = calculation[i].split(`:`)[1];
+                                break;
+                            case `points`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`true`) === 0) {
+                                    expression.points = true;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`false`) === 0) {
+                                    expression.points = false;
+                                }
+                                break;
+                            case `lines`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`true`) === 0) {
+                                    expression.lines = true;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`false`) === 0) {
+                                    expression.lines = false;
+                                }
+                                break;
+                            case `fill`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`true`) === 0) {
+                                    expression.fill = true;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`false`) === 0) {
+                                    expression.fill = false;
+                                }
+                                break;
+                            case `hidden`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`true`) === 0) {
+                                    expression.hidden = true;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`false`) === 0) {
+                                    expression.hidden = false;
+                                }
+                                break;
+                            case `sliderMin`:
+                                expression.sliderBounds.min = calculation[i].split(`:`)[1];
+                                break;
+                            case `sliderMax`:
+                                expression.sliderBounds.max = calculation[i].split(`:`)[1];
+                                break;
+                            case `sliderStep`:
+                                expression.sliderBounds.step = calculation[i].split(`:`)[1];
+                                break;
+                            case `playing`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`true`) === 0) {
+                                    expression.playing = true;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`false`) === 0) {
+                                    expression.playing = false;
+                                }
+                                break;
+                            case `parametricMin`:
+                                expression.parametricDomain.min = calculation[i].split(`:`)[1];
+                                break;
+                            case `parametricMax`:
+                                expression.parametricDomain.max = calculation[i].split(`:`)[1];
+                                break;
+                            case `polarMin`:
+                                expression.polarDomain.min = calculation[i].split(`:`)[1];
+                                break;
+                            case `polarMax`:
+                                expression.polarDomain.max = calculation[i].split(`:`)[1];
+                                break;
+                            case `dragMode`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`x`) === 0) {
+                                    expression.dragMode = Desmos.dragModes.X;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`y`) === 0) {
+                                    expression.dragMode = Desmos.dragModes.Y;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`xy`) === 0) {
+                                    expression.dragMode = Desmos.dragModes.XY;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`none`) === 0) {
+                                    expression.dragMode = Desmos.dragModes.NONE;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`auto`) === 0) {
+                                    expression.dragMode = Desmos.dragModes.AUTO;
+                                }
+                                break;
+                            case `label`:
+                                expression.label = calculation[i].split(`:`)[1];
+                                break;
+                            case `showLabel`:
+                                expression.showLabel = calculation[i].split(`:`)[1];
+                                break;
+                            case `labelSize`:
+                                expression.labelSize = calculation[i].split(`:`)[1];
+                                break;
+                            case `labelOrientation`:
+                                if (calculation[i].split(`:`)[1].localeCompare(`above`) === 0) {
+                                    expression.dragMode = Desmos.labelOrientation.ABOVE;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`below`) === 0) {
+                                    expression.dragMode = Desmos.labelOrientation.BELOW;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`left`) === 0) {
+                                    expression.dragMode = Desmos.labelOrientation.LEFT;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`right`) === 0) {
+                                    expression.dragMode = Desmos.labelOrientation.RIGHT;
+                                }
+                                else if (calculation[i].split(`:`)[1].localeCompare(`default`) === 0) {
+                                    expression.dragMode = Desmos.labelOrientation.DEFAULT;
+                                }
+                                break;
+                            case `colorLatex`:
+                                calculator.controller.dispatch({
+                                    type: `set-item-colorlatex`,
+                                    id: i.toString(),
+                                    colorLatex: calculation[i].split(`:`)[1]
+                                });
+                                break;
+                        }
+                    }
+                }
+                calculator.setExpression(expression);
+            }
+        }
+        createCalculation(String.raw`
+                X=0;
+                Y=0;
+                Z=0;
+                P0x=[-1,1,-1,1,-1,1,-1,1];
+                P0y=[-1,-1,1,1,-1,-1,1,1];
+                P0z=[-1,-1,-1,-1,1,1,1,1];
+                \alpha=0@playing:true;
+                P1x=P0x\cos(\alpha)-P0z\sin(\alpha) + X;
+                P1y=P0y + Y;
+                P1z=P0x\sin(\alpha)+P0z\cos(\alpha) + Z;
+                \beta=0@playing:true;
+                P2x=P1x;
+                P2y=P1z\sin(\beta)+P1y\cos(\beta);
+                P2z=P1z\cos(\beta)-P1y\sin(\beta);
+                P(v)=\frac{(v[1],v[2])}{1+0.1v[3]};
+                K=[1...\length(P0x)];
+                T0=[1,3,2,1,2,5,1,5,3,2,3,4,2,4,6,2,6,5,3,7,4,3,5,7,4,8,6,4,7,8,5,6,7,6,8,7];
+                TI=[1...\frac{\length(T0)}{3}];
+                A(i,j,k)=\frac{[P2x[i]+P2x[j]+P2x[k],P2y[i]+P2y[j]+P2y[k],P2z[i]+P2z[j]+P2z[k]]}{3};
+                ZS=[-A(T0[3i-2],T0[3i-1],T0[3i])[3]\for i=TI];
+                T=T0;
+                BF=[\{D(N_{P}(T[3i-2],T[3i-1],T[3i]),[0,0,1])<=0,0\}\for i=TI];
+                y>=-1@fillOpacity:1;
+                y<=-1@fillOpacity:1;
+                V=[P([0,1,0]+[P2x[k],P2y[k],P2z[k]])\for k=K]@hidden:true;
+                S=[P([0,-3,0]+[P2x[k],0,P2z[k]])\for k=K]@hidden:true;
+                [\polygon(S[T[3j-2]],S[T[3j-1]],S[T[3j]])\for j=TI]@fillOpacity:1;
+                E=\sort([L_{C}(L_{V}(T[3j-2],T[3j-1],T[3j]))\for j=TI],ZS);
+                J=\rgb(200,200,200);
+                \sort([\{BF[j]>=1:\polygon(V[T[3j-2]],V[T[3j-1]],V[T[3j]])\}\for j=TI],ZS)@colorLatex:E@fillOpacity:1;
+                D(u,v)=u[1]v[1]+u[2]v[2]+u[3]v[3];
+                LC(x)=\rgb(128x,128+128x,128+128x);
+                LV(i,j,k)=\max(0,D(N_{P}(i,j,k),[0,1,0]));
+                C(u,v)=[u[2]v[3]-u[3]v[2],u[3]v[1]-u[1]v[3],u[1]v[2]-u[2]v[1]];
+                N(v)=\frac{v}{\sqrt{D(v,v)}};
+                NP(i,j,k)=N(C([P2x[j]-P2x[i],P2y[j]-P2y[i],P2z[j]-P2z[i]],[P2x[k]-P2x[i],P2y[k]-P2y[i],P2z[k]-P2z[i]]));
+                [\polygon(P([0,1,0]+A(T[3i-2],T[3i-1],T[3i])),P([0,1,0]+A(T[3i-2],T[3i-1],T[3i])+0.3NP(T[3i-2],T[3i-1],T[3i])))\for i=TI]@hidden:true;
+            `);
+    </script>
+</body>
+
+</html>
