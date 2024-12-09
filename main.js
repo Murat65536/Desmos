@@ -1,2 +1,0 @@
-/// DesmosScript.js
-alert("test")
